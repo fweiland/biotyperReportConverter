@@ -1,28 +1,36 @@
 
 library(XML)
-library(stringr)
 
 convertBioTyperReportToCSV = function(fname){
   
   doc <- htmlParse(fname)
-  
-  # top n ranked matches reported
-  n = 3
-  
+    
   # Number of Analytes
-  tmp = xpathSApply(doc, "//h3", xmlValue)
-  N = length(tmp)-3
-  o = data.frame(Analyte=rep(tmp[4:length(tmp)],rep(3,N)))
+  h3s = xpathSApply(doc, "//h3", xmlValue)
+  N = length(h3s)-3
+  
+  # URLS
+  urls = xpathSApply(doc, "//tr/td/a[starts-with(@href,'http')]", xmlGetAttr,"href")
+  
+  if ((length(urls) %% N) != 0){
+    print("ERROR: length mismatch: ncbi_url -- aborting!")  
+  } else {
+
+  # Top n hits are reported
+  n = length(urls)/N  
+  
+  # Initialise output data.frame o
+  o = data.frame(Analyte=rep(h3s[4:length(h3s)],rep(n,N)))
   
   # All Table entries.
-  vals = xpathSApply(doc, "//table/tbody/tr/td", xmlValue)
-  
+  vals = xpathSApply(doc, "//tr/td", xmlValue)
+
   # Analyte Name
   tmp = which(vals == "Analyte Name:")+1
   if(length(tmp) != N){
     print("ERROR: length mismatch: nam")
   } else {
-    o$nam = rep(vals[tmp],rep(3,N))
+    o$nam = rep(vals[tmp],rep(n,N))
   }
   
   # # Analyte ID
@@ -30,7 +38,7 @@ convertBioTyperReportToCSV = function(fname){
   # if(length(tmp) != N){
   #   print("ERROR: length mismatch: id")
   # } else {
-  #   o$id = rep(vals[tmp],rep(3,N))
+  #   o$id = rep(vals[tmp],rep(n,N))
   # }
   
   # Spot
@@ -42,9 +50,9 @@ convertBioTyperReportToCSV = function(fname){
     tmp2 = sapply(tmp,function(x){return(length(x))})
     o$spot = ""
     for (i in 1:N){
-      o[3*i-2,"spot"] = tmp[[i]][tmp2[i]-2]
-      o[3*i-1,"spot"] = tmp[[i]][tmp2[i]-2]
-      o[3*i  ,"spot"] = tmp[[i]][tmp2[i]-2]
+      for (j in 1:n){
+        o[3*i - j + 1,"spot"] = tmp[[i]][tmp2[i]-2]        
+      }
     }
   }
   
@@ -52,7 +60,11 @@ convertBioTyperReportToCSV = function(fname){
   if(length(tmp) != N){
     print("ERROR: length mismatch: table entries!?")
   } else {
-    tmp = c(t(matrix(c(tmp+2,tmp+6,tmp+10),nrow=length(anal))))
+    tmp2 = tmp + 2
+    for (j in 2:n){
+      tmp2 = c(tmp2, tmp + 2 + 4*(j-1))
+    }
+    tmp = c(t(matrix(tmp2,nrow=length(N))))
     
     o$rnk = as.numeric(substring(vals[tmp],1,2))
     o$score_sym = substring(vals[tmp],3)
@@ -60,20 +72,15 @@ convertBioTyperReportToCSV = function(fname){
     o$score = vals[tmp+2]
     o$ncbi_id = vals[tmp+3]
   }
-  
-  # URLS
-  tmp = str_subset(xpathSApply(doc, "//table/tbody/tr/td/a", xmlGetAttr,"href"),"http")
-  if (length(tmp) != 3*N){
-    print("ERROR: length mismatch: ncbi_url")  
-  } else{
-    o$ncbi_url = tmp  
-  }
+    
+  o$ncbi_url = urls
   
   nams = unique(o$nam)
   if (length(nams) == 1){
     write.csv(o,paste(nams,"csv",sep="."),row.names=FALSE)  
   } else {
     write.csv(o,paste(substring(fname,1,nchar(fname)-5),"csv",sep="."),row.names=FALSE)  
+  }
   }
   
 }
