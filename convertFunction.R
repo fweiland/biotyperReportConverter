@@ -47,12 +47,15 @@ convertBioTyperReportToCSV = function(fname){
   if(length(tmp) != N){
     print("ERROR: length mismatch: spot")
   } else {
+    # o$desc = rep(vals[tmp],rep(n,N))
     tmp = strsplit(vals[tmp],'\\\\')
     tmp2 = sapply(tmp,function(x){return(length(x))})
     o$spot = ""
+    o$shot = ""
     for (i in 1:N){
       for (j in 1:n){
         o[3*i - j + 1,"spot"] = tmp[[i]][tmp2[i]-2]        
+        o[3*i - j + 1,"shot"] = tmp[[i]][tmp2[i]-1]        
       }
     }
   }
@@ -61,11 +64,11 @@ convertBioTyperReportToCSV = function(fname){
   if(length(tmp) != N){
     print("ERROR: length mismatch: table entries!?")
   } else {
-    tmp2 = tmp + 2
-    for (j in 2:n){
+    tmp2 = c()
+    for (j in 1:n){
       tmp2 = c(tmp2, tmp + 2 + 4*(j-1))
     }
-    tmp = c(t(matrix(tmp2,nrow=length(N))))
+    tmp = c(t(matrix(tmp2,nrow=N)))
     
     o$rnk = as.numeric(substring(vals[tmp],1,2))
     o$score_sym = substring(vals[tmp],3)
