@@ -13,8 +13,9 @@ convertBioTyperReportToCSV = function(fname){
   urls = xpathSApply(doc, "//tr/td/a[starts-with(@href,'http')]", xmlGetAttr,"href")
   
   if ((length(urls) %% N) != 0){
-    print("ERROR: length mismatch: ncbi_url -- aborting!")  
-  } else {
+    print("ERROR: length mismatch: ncbi_url -- aborting!")
+    return(data.frame())
+  }
 
   # Top n hits are reported
   n = length(urls)/N  
@@ -75,14 +76,8 @@ convertBioTyperReportToCSV = function(fname){
     
   o$ncbi_url = urls
   
-  nams = unique(o$nam)
-  if (length(nams) == 1){
-    write.csv(o,paste(nams,"csv",sep="."),row.names=FALSE)  
-  } else {
-    write.csv(o,paste(substring(fname,1,nchar(fname)-5),"csv",sep="."),row.names=FALSE)  
-  }
-  }
-  
+  return(o)
+
 }
 
 
